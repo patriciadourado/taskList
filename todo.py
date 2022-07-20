@@ -9,7 +9,26 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
+import sqlite3
 
+# Create a database or connect to one
+
+conn = sqlite3.connect('mylist.db')
+#  Create a cursor
+c = conn.cursor()
+
+# Create a table
+c.execute("""CREATE TABLE if not exists todo_list(
+    list_item text)
+    """)
+
+# Commit the changes
+conn.commit()
+
+# Close our connection
+
+conn.close()
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -47,8 +66,31 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-    # Add Item To List
+        # Grab all the items from the database
+        self.grab_all()
 
+    # Grab items from database
+    def grab_all(self):
+        # Create a database or connect to one
+        conn = sqlite3.connect('mylist.db')
+
+        #  Create a cursor
+        c = conn.cursor()
+
+        c.execute("SELECT * FROM todo_list")
+        records = c.fetchall()
+
+        # Commit the changes
+        conn.commit()
+
+        # Close our connection
+        conn.close()
+
+        # Loop through records and add to screen
+        for record in records:
+            self.mylist_listWidget.addItem(str(record[0]))
+
+    # Add Item To List
     def add_it(self):
         # Grab the item from the list box
         item = self.additem_lineEdit.text()
@@ -77,14 +119,41 @@ class Ui_MainWindow(object):
     # Save To Database
 
     def save_it(self):
-        # Create Blank Dictionary To Hold Todo Items
+        # Create a database or connect to one
+        conn = sqlite3.connect('mylist.db')
+        #  Create a cursor
+        c = conn.cursor()
+
+        # Delete everything in the database table
+        c.execute('DELETE FROM todo_list;',)
+
+        # Create Blank List To Hold Todo Items
         items = []
         # Loop through the listWidget and pull out each item
         for index in range(self.mylist_listWidget.count()):
             items.append(self.mylist_listWidget.item(index)) # Appending items from the listWidget into the list
 
         for item in items:
-            print(item.text())
+            #print(item.text())
+            # Add data to the table
+            c.execute("INSERT INTO todo_list VALUES (:item)",
+            {
+                'item': item.text(),
+            })
+        
+        # Commit the changes
+        conn.commit()
+
+        # Close our connection
+        conn.close()
+
+        # Pop up box
+
+        msg = QMessageBox()
+        msg.setWindowTitle("Saved to Database!")
+        msg.setText("Your Todo List Has Been Saved!")
+        msg.setIcon(QMessageBox.Information)
+        x = msg.exec_()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
